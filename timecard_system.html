@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TXAZ Consulting - Timecard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #667eea; min-height: 100vh; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 8px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #c99a5b; }
+        .logo { width: 180px; height: auto; margin: 0 auto 20px; display: block; }
+        h1 { color: #333; font-size: 28px; margin-bottom: 10px; }
+        h2 { color: #333; font-size: 20px; margin-bottom: 20px; margin-top: 20px; }
+        .section { background: #f5f5f5; padding: 25px; border-radius: 6px; margin-bottom: 20px; border-left: 5px solid #667eea; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 6px; font-size: 13px; color: #333; }
+        input, select, textarea { padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 6px rgba(102,126,234,0.3); }
+        input[readonly] { background: #e8e8e8; color: #666; cursor: not-allowed; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        button { padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-secondary { background: #2ed573; color: white; }
+        .btn-secondary:hover { background: #26de81; }
+        .btn-danger { background: #ff4757; color: white; padding: 8px 12px; font-size: 12px; }
+        .btn-logout { position: absolute; top: 30px; right: 40px; background: #999; color: white; padding: 8px 16px; }
+        .alert { padding: 15px; border-radius: 4px; margin-bottom: 20px; display: none; font-weight: bold; }
+        .alert.show { display: block; }
+        .alert-success { background: #d4edda; color: #155724; border: 2px solid #28a745; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
+        .entry-item { background: white; border-left: 5px solid #667eea; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        .entry-day { font-weight: bold; font-size: 15px; color: #333; }
+        .entry-info { font-size: 13px; color: #666; margin: 8px 0; }
+        .entry-hours { font-weight: bold; color: #667eea; margin-top: 8px; }
+        .progress { width: 100%; height: 8px; background: #ddd; border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background: #667eea; transition: width 0.3s; }
+        .hidden { display: none !important; }
+        .login-page { max-width: 450px; margin: 80px auto; }
+        .entry-count { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 15px; }
+        .no-entries { color: #999; padding: 20px; text-align: center; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login" class="login-page">
+    <div class="header" style="border: none; margin-bottom: 30px;">
+        <img src="txaz_logo.png" alt="TXAZ" class="logo">
+        <h1>Timecard System</h1>
+    </div>
+    <div class="section">
+        <h2 style="text-align: center;">Login</h2>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label>Username</label>
+            <input type="text" id="username" placeholder="admin">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="password">
+        </div>
+        <button class="btn-primary" style="width: 100%;" onclick="app.login()">Login</button>
+        <div style="margin-top: 20px; font-size: 12px; color: #666; line-height: 1.6;">
+            <strong>Admin:</strong> admin / password<br>
+            <strong>Consultant:</strong> Leave blank and click Login
+        </div>
+    </div>
+</div>
+
+<!-- ADMIN SCREEN -->
+<div id="admin" class="container hidden">
+    <button class="btn-logout" onclick="app.logout()">← Logout</button>
+    <div class="header">
+        <img src="txaz_logo.png" alt="TXAZ" class="logo">
+        <h1>Admin Panel</h1>
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <div class="section">
+        <h2>Add/Edit Consultant</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Consultant ID</label>
+                <select id="adminConsultantId" onchange="app.adminSelect()">
+                    <option value="">-- Select Consultant --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="adminName" placeholder="Full name">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="adminEmail" placeholder="email@company.com">
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="adminDept" placeholder="Department">
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="app.adminSave()">Save Consultant</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Consultant Directory</h2>
+        <div id="adminList"></div>
+    </div>
+</div>
+
+<!-- TIMECARD SCREEN -->
+<div id="timecard" class="container hidden">
+    <button class="btn-logout" onclick="app.logout()">← Logout</button>
+    <div class="header">
+        <img src="txaz_logo.png" alt="TXAZ" class="logo">
+        <h1>Consultant Timecard</h1>
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <!-- SELECT CONSULTANT -->
+    <div class="section">
+        <h2>Select Your ID</h2>
+        <div class="form-group">
+            <label>Consultant *</label>
+            <select id="consultantSelect" onchange="app.loadConsultant()">
+                <option value="">-- Choose Your ID --</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- INFO DISPLAY (readonly) -->
+    <div class="section">
+        <h2>Your Information</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="name" readonly>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="text" id="email" readonly>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="department" readonly>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Week Starts</label>
+                <input type="date" id="weekStart" readonly>
+            </div>
+            <div class="form-group">
+                <label>Week Ends</label>
+                <input type="date" id="weekEnd" readonly>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD ENTRY (editable) -->
+    <div class="section">
+        <h2>Add Time Entry</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Day *</label>
+                <select id="day" onchange="app.calculateDate()">
+                    <option value="">-- Select --</option>
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="date" readonly>
+            </div>
+            <div class="form-group">
+                <label>Clock In *</label>
+                <input type="time" id="clockIn">
+            </div>
+            <div class="form-group">
+                <label>Clock Out *</label>
+                <input type="time" id="clockOut">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Break (min)</label>
+                <input type="number" id="breaks" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label>Client *</label>
+                <input type="text" id="client" placeholder="Client name">
+            </div>
+            <div class="form-group">
+                <label>Project</label>
+                <input type="text" id="project" placeholder="Project">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="notes" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="app.addEntry()">✓ ADD ENTRY</button>
+        </div>
+    </div>
+
+    <!-- ENTRIES LIST -->
+    <div class="section">
+        <h2>Your Entries</h2>
+        <div class="progress">
+            <div class="progress-bar" id="progress" style="width: 0%"></div>
+        </div>
+        <div class="entry-count" id="count">0 of 7 entries</div>
+        <div id="entries"></div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="section" style="text-align: center;">
+        <button class="btn-primary" onclick="app.submit()" style="padding: 15px 40px; font-size: 16px;">📤 SUBMIT TIMECARD</button>
+    </div>
+</div>
+
+<script>
+var app = {
+    consultantDb: 'txaz_consultants_db',
+    timecardDb: 'txaz_timecard_db',
+    currentConsultant: null,
+    weekStart: null,
+
+    init: function() {
+        this.initDatabase();
+        this.loadConsultants();
+    },
+
+    initDatabase: function() {
+        if (!localStorage.getItem(this.consultantDb)) {
+            var db = {};
+            for (var i = 1; i <= 25; i++) {
+                var id = 'CONS' + String(i).padStart(3, '0');
+                db[id] = { id: id, name: '', email: '', department: '' };
+            }
+            localStorage.setItem(this.consultantDb, JSON.stringify(db));
+        }
+    },
+
+    loadConsultants: function() {
+        var db = JSON.parse(localStorage.getItem(this.consultantDb));
+        var select = document.getElementById('consultantSelect');
+        select.innerHTML = '<option value="">-- Choose Your ID --</option>';
+        for (var id in db) {
+            var opt = document.createElement('option');
+            opt.value = id;
+            opt.text = id + ' - ' + (db[id].name || '(no name)');
+            select.appendChild(opt);
+        }
+    },
+
+    login: function() {
+        var username = document.getElementById('username').value.trim();
+        var password = document.getElementById('password').value.trim();
+
+        if (username === 'admin' && password === 'password') {
+            document.getElementById('login').classList.add('hidden');
+            document.getElementById('admin').classList.remove('hidden');
+            this.loadAdminPanel();
+            return;
+        }
+
+        if (username === '' && password === '') {
+            document.getElementById('login').classList.add('hidden');
+            document.getElementById('timecard').classList.remove('hidden');
+            this.setWeekDates();
+            return;
+        }
+
+        alert('Invalid. Use:\nadmin/password OR\nLeave blank for consultant');
+    },
+
+    loadAdminPanel: function() {
+        var db = JSON.parse(localStorage.getItem(this.consultantDb));
+        var select = document.getElementById('adminConsultantId');
+        select.innerHTML = '<option value="">-- Select Consultant --</option>';
+        for (var id in db) {
+            var opt = document.createElement('option');
+            opt.value = id;
+            opt.text = id;
+            select.appendChild(opt);
+        }
+    },
+
+    adminSelect: function() {
+        var id = document.getElementById('adminConsultantId').value;
+        if (!id) {
+            document.getElementById('adminName').value = '';
+            document.getElementById('adminEmail').value = '';
+            document.getElementById('adminDept').value = '';
+            return;
+        }
+
+        var db = JSON.parse(localStorage.getItem(this.consultantDb));
+        var c = db[id];
+        document.getElementById('adminName').value = c.name;
+        document.getElementById('adminEmail').value = c.email;
+        document.getElementById('adminDept').value = c.department;
+    },
+
+    adminSave: function() {
+        var id = document.getElementById('adminConsultantId').value;
+        var name = document.getElementById('adminName').value.trim();
+
+        if (!id || !name) {
+            this.alert('Select consultant and enter name', 'error');
+            return;
+        }
+
+        try {
+            var db = JSON.parse(localStorage.getItem(this.consultantDb));
+            if (!db) db = {};
+
+            db[id] = {
+                id: id,
+                name: name,
+                email: document.getElementById('adminEmail').value || '',
+                department: document.getElementById('adminDept').value || ''
+            };
+
+            localStorage.setItem(this.consultantDb, JSON.stringify(db));
+
+            // Verify it was saved
+            var verify = JSON.parse(localStorage.getItem(this.consultantDb));
+            console.log('Saved consultant:', id, verify[id]);
+
+            this.alert('✓ ' + id + ' (' + name + ') saved!', 'success');
+            this.loadAdminPanel();
+            this.loadConsultants();
+            this.adminRefresh();
+        } catch (e) {
+            console.error('Error saving:', e);
+            this.alert('Error saving: ' + e.message, 'error');
+        }
+    },
+
+    adminRefresh: function() {
+        var db = JSON.parse(localStorage.getItem(this.consultantDb));
+        var list = document.getElementById('adminList');
+        var html = '<table style="width:100%; border-collapse:collapse;">';
+        html += '<tr style="background:#667eea; color:white;"><th style="padding:10px; text-align:left;">ID</th><th style="padding:10px; text-align:left;">Name</th><th style="padding:10px; text-align:left;">Email</th><th style="padding:10px; text-align:left;">Dept</th></tr>';
+
+        for (var id in db) {
+            var c = db[id];
+            if (c.name) {
+                html += '<tr style="border-bottom:1px solid #ddd;"><td style="padding:10px;">' + id + '</td><td style="padding:10px;">' + c.name + '</td><td style="padding:10px;">' + c.email + '</td><td style="padding:10px;">' + c.department + '</td></tr>';
+            }
+        }
+        html += '</table>';
+        list.innerHTML = html;
+    },
+
+    logout: function() {
+        document.getElementById('login').classList.remove('hidden');
+        document.getElementById('timecard').classList.add('hidden');
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        this.currentConsultant = null;
+    },
+
+    setWeekDates: function() {
+        var today = new Date();
+        var day = today.getDay();
+        var diff = today.getDate() - day;
+
+        var sun = new Date(today.setDate(diff));
+        var sat = new Date(today.setDate(diff + 6));
+
+        var format = function(d) {
+            var y = d.getFullYear();
+            var m = String(d.getMonth() + 1).padStart(2, '0');
+            var d = String(d.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + d;
+        };
+
+        this.weekStart = sun;
+        document.getElementById('weekStart').value = format(sun);
+        document.getElementById('weekEnd').value = format(sat);
+    },
+
+    loadConsultant: function() {
+        var id = document.getElementById('consultantSelect').value;
+        if (!id) {
+            document.getElementById('name').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('department').value = '';
+            this.currentConsultant = null;
+            this.displayEntries();
+            return;
+        }
+
+        var db = JSON.parse(localStorage.getItem(this.consultantDb));
+        var c = db[id];
+
+        document.getElementById('name').value = c.name;
+        document.getElementById('email').value = c.email;
+        document.getElementById('department').value = c.department;
+
+        this.currentConsultant = id;
+        this.displayEntries();
+    },
+
+    calculateDate: function() {
+        var dayVal = document.getElementById('day').value;
+        if (!dayVal) {
+            document.getElementById('date').value = '';
+            return;
+        }
+
+        var day = parseInt(dayVal);
+        var date = new Date(this.weekStart);
+        var dayDiff = day - date.getDay();
+        date.setDate(date.getDate() + dayDiff);
+
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+
+        document.getElementById('date').value = y + '-' + m + '-' + d;
+    },
+
+    addEntry: function() {
+        alert('Button clicked!'); // TEMPORARY - visible confirmation
+
+        if (!this.currentConsultant) {
+            alert('ERROR: No consultant selected');
+            return;
+        }
+
+        var date = document.getElementById('date').value;
+        var clockIn = document.getElementById('clockIn').value;
+        var clockOut = document.getElementById('clockOut').value;
+        var client = document.getElementById('client').value.trim();
+
+        if (!date) { alert('ERROR: No date selected'); return; }
+        if (!clockIn) { alert('ERROR: No clock in time'); return; }
+        if (!clockOut) { alert('ERROR: No clock out time'); return; }
+        if (!client) { alert('ERROR: No client entered'); return; }
+
+        var entries = this.getEntries();
+
+        if (entries.length >= 7) {
+            alert('ERROR: Max 7 entries per week');
+            return;
+        }
+
+        var dup = false;
+        for (var i = 0; i < entries.length; i++) {
+            if (entries[i].date === date) {
+                dup = true;
+                break;
+            }
+        }
+        if (dup) {
+            alert('ERROR: Entry already exists for ' + date);
+            return;
+        }
+
+        var inParts = clockIn.split(':');
+        var outParts = clockOut.split(':');
+        var inMin = parseInt(inParts[0]) * 60 + parseInt(inParts[1]);
+        var outMin = parseInt(outParts[0]) * 60 + parseInt(outParts[1]);
+        var breakMin = parseInt(document.getElementById('breaks').value) || 0;
+        var hours = ((outMin - inMin - breakMin) / 60).toFixed(2);
+
+        if (hours <= 0) {
+            alert('ERROR: Clock out must be after clock in');
+            return;
+        }
+
+        var daySelect = document.getElementById('day');
+        var dayText = daySelect.options[daySelect.selectedIndex].text;
+
+        var entry = {
+            id: Date.now(),
+            date: date,
+            day: dayText,
+            clockIn: clockIn,
+            clockOut: clockOut,
+            breaks: breakMin,
+            hours: parseFloat(hours),
+            client: client,
+            project: document.getElementById('project').value || 'N/A',
+            notes: document.getElementById('notes').value || ''
+        };
+
+        entries.push(entry);
+        this.saveEntries(entries);
+
+        alert('✓ Entry saved! (' + entries.length + ' of 7)');
+
+        // Clear form
+        document.getElementById('day').value = '';
+        document.getElementById('date').value = '';
+        document.getElementById('clockIn').value = '';
+        document.getElementById('clockOut').value = '';
+        document.getElementById('breaks').value = '0';
+        document.getElementById('client').value = '';
+        document.getElementById('project').value = '';
+        document.getElementById('notes').value = '';
+
+        this.displayEntries();
+    },
+
+    displayEntries: function() {
+        if (!this.currentConsultant) {
+            document.getElementById('entries').innerHTML = '<div class="no-entries">Select consultant to view entries</div>';
+            return;
+        }
+
+        var entries = this.getEntries();
+        var html = '';
+
+        if (entries.length === 0) {
+            html = '<div class="no-entries">No entries yet</div>';
+        } else {
+            for (var i = 0; i < entries.length; i++) {
+                var e = entries[i];
+                html += '<div class="entry-item">' +
+                    '<div class="entry-day">' + e.day + ' - ' + e.date + '</div>' +
+                    '<div class="entry-info"><strong>Client:</strong> ' + e.client + ' | <strong>Project:</strong> ' + e.project + '</div>' +
+                    '<div class="entry-info"><strong>Time:</strong> ' + e.clockIn + ' - ' + e.clockOut + ' (Break: ' + e.breaks + 'min)</div>' +
+                    '<div class="entry-hours">Hours: ' + e.hours + '</div>' +
+                    '<button class="btn-danger" onclick="app.deleteEntry(' + e.id + ')">Delete</button>' +
+                    '</div>';
+            }
+        }
+
+        document.getElementById('entries').innerHTML = html;
+
+        var pct = (entries.length / 7) * 100;
+        document.getElementById('progress').style.width = pct + '%';
+        document.getElementById('count').textContent = entries.length + ' of 7 entries';
+    },
+
+    deleteEntry: function(id) {
+        var entries = this.getEntries();
+        entries = entries.filter(function(e) { return e.id !== id; });
+        this.saveEntries(entries);
+        this.displayEntries();
+    },
+
+    submit: function() {
+        console.log('submit called');
+
+        if (!this.currentConsultant) {
+            this.alert('Select consultant first', 'error');
+            return;
+        }
+
+        var entries = this.getEntries();
+        if (entries.length === 0) {
+            this.alert('No entries to submit', 'error');
+            return;
+        }
+
+        var db = JSON.parse(localStorage.getItem(this.consultantDb));
+        var c = db[this.currentConsultant];
+
+        var total = 0;
+        for (var i = 0; i < entries.length; i++) {
+            total += parseFloat(entries[i].hours);
+        }
+        total = total.toFixed(2);
+
+        var body = 'TIMECARD SUBMISSION\n';
+        body += '===============================\n\n';
+        body += 'Consultant ID: ' + this.currentConsultant + '\n';
+        body += 'Name: ' + c.name + '\n';
+        body += 'Email: ' + c.email + '\n';
+        body += 'Department: ' + c.department + '\n';
+        body += 'Week: ' + document.getElementById('weekStart').value + ' to ' + document.getElementById('weekEnd').value + '\n';
+        body += 'Total Hours: ' + total + '\n\n';
+        body += 'DAILY ENTRIES:\n';
+        body += '===============================\n';
+
+        for (var i = 0; i < entries.length; i++) {
+            var e = entries[i];
+            body += '\n' + (i+1) + '. ' + e.day + ' (' + e.date + ')\n';
+            body += '   Client: ' + e.client + '\n';
+            body += '   Project: ' + e.project + '\n';
+            body += '   Time: ' + e.clockIn + ' - ' + e.clockOut + ' (Hours: ' + e.hours + ')\n';
+            if (e.notes) body += '   Notes: ' + e.notes + '\n';
+        }
+
+        var subj = 'Timecard Submission - ' + this.currentConsultant;
+        var recipient = 'ray.swinney@txazconsultingservices.com';
+
+        console.log('Subject:', subj);
+        console.log('Body length:', body.length);
+        console.log('Recipient:', recipient);
+
+        var link = 'mailto:' + recipient + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
+
+        console.log('Mailto link created, length:', link.length);
+        console.log('Opening email client...');
+
+        window.location.href = link;
+
+        setTimeout(function() {
+            console.log('Email client should have opened');
+        }, 500);
+    },
+
+    getEntries: function() {
+        if (!this.currentConsultant) return [];
+        var db = JSON.parse(localStorage.getItem(this.timecardDb) || '{}');
+        return db[this.currentConsultant] || [];
+    },
+
+    saveEntries: function(entries) {
+        var db = JSON.parse(localStorage.getItem(this.timecardDb) || '{}');
+        db[this.currentConsultant] = entries;
+        localStorage.setItem(this.timecardDb, JSON.stringify(db));
+    },
+
+    clearForm: function() {
+        document.getElementById('day').value = '';
+        document.getElementById('date').value = '';
+        document.getElementById('clockIn').value = '';
+        document.getElementById('clockOut').value = '';
+        document.getElementById('breaks').value = '0';
+        document.getElementById('client').value = '';
+        document.getElementById('project').value = '';
+        document.getElementById('notes').value = '';
+    },
+
+    alert: function(msg, type) {
+        var el = document.getElementById('alert');
+        el.textContent = msg;
+        el.className = 'alert alert-' + type + ' show';
+        setTimeout(function() { el.classList.remove('show'); }, 4000);
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    app.init();
+});
+</script>
+
+</body>
+</html>
